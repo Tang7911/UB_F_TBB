@@ -61,7 +61,7 @@ cursor=conn.cursor()
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS task_status(
         task_name TEXT PRIMARY KEY,
-        is_cleaned INEGER NOT NULL DEFAULT 0
+        is_cleaned INTEGER NOT NULL DEFAULT 0
     )
 """)
 cursor.execute("""
@@ -83,7 +83,7 @@ else:
     # 过滤时间异常值
     cursor.execute("""
         DELETE FROM user_behavior
-        WHERE datetime BETWEEN '2017-11-25' AND '2017-12-03'
+        WHERE datetime NOT BETWEEN '2017-11-25 00:00:00' AND '2017-12-03 23:59:59'
     """)
     print("数据清洗完毕！")
 
