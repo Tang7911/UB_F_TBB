@@ -32,7 +32,6 @@ if os.path.exists(db_path):
     else:
         print("未查询到数据！")
 
-    cursor.execute("DROP TABLE IF EXISTS user_behavior_count")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_behavior_count (
             user_id TEXT comment '用户ID',
@@ -45,18 +44,36 @@ if os.path.exists(db_path):
     conn.commit()
 
     cursor.execute("""
-        INSERT INTO user_behavior_count (user_id, pv_type, fav_type, cart_type, buy_type)
-        SELECT
-            user_id,
-            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_type,
-            SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_type,
-            SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_type,
-            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_type
-        FROM user_behavior
-        GROUP BY user_id
+        SELECT is_done FROM task_status
+        WHERE task_name='user_behavior_agg'
     """)
-    conn.commit()
-    print("用户画像已聚合")
+    result = cursor.fetchone()
+
+    if result and result[0]==1:
+        print("用户画像已聚合！")
+    else:
+        cursor.execute("""
+            INSERT INTO user_behavior_count (user_id, pv_type, fav_type, cart_type, buy_type)
+            SELECT
+                user_id,
+                SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_type,
+                SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_type,
+                SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_type,
+                SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_type
+            FROM user_behavior
+            GROUP BY user_id
+        """)
+
+        cursor.execute("""
+            INSERT INTO task_status(task_name, is_done)
+            VALUES ('user_behavior_agg', 1)
+        """)
+        conn.commit()
+        print("用户画像已聚合")
+    
+    #df = pd.read_sql_query("SELECT * FROM user_behavior_count LIMIT 10", conn)
+    #print(df)
+
     # 释放游标和数据库连接
     cursor.close()
     conn.close()

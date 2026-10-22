@@ -61,11 +61,11 @@ cursor=conn.cursor()
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS task_status(
         task_name TEXT PRIMARY KEY,
-        is_cleaned INTEGER NOT NULL DEFAULT 0
+        is_done INTEGER NOT NULL DEFAULT 0
     )
 """)
 cursor.execute("""
-    SELECT is_cleaned FROM task_status
+    SELECT is_done FROM task_status
     WHERE task_name='user_behavior_clean'
 """)
 result=cursor.fetchone()
@@ -88,7 +88,7 @@ else:
     print("数据清洗完毕！")
 
     cursor.execute("""
-        INSERT INTO task_status (task_name, is_cleaned)
+        INSERT INTO task_status (task_name, is_done)
         VALUES ('user_behavior_clean', 1)
     """)
     conn.commit()
