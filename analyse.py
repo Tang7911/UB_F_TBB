@@ -79,6 +79,36 @@ if os.path.exists(db_path):
     result2 = cursor.fetchone()
     print(f"“购买次数 ≥ 2 的用户数”占“总购买用户数”的比例为：{result2[0]:.4f}")
 
+    cursor.execute("""
+        SELECT
+            (SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) + SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END)) * 1.0 / SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END),
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) * 1.0 / (SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) + SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END)),
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) * 1.0/ SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END)
+        FROM user_behavior
+    """)
+    result3 = cursor.fetchone()
+    print(f"第一步转化率：(收藏数 + 加购数) / 点击数 (PV) = {result3[0]:.4f}")
+    print(f"第二步转化率：购买数 / (收藏数 + 加购数) = {result3[1]:.4f}")
+    print(f"总体转化率：购买数 / 点击数 (PV) = {result3[2]:.4f}")
+
+    cursor.execute("""
+        SELECT
+            strftime('%H', datetime) AS hour,
+            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_hour,
+            SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_hour,
+            SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_hour,
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_hour
+        FROM user_behavior
+        GROUP BY hour
+        ORDER BY hour
+    """)
+    result4 = cursor.fetchall()
+    print(f"{'小时':<5} | {'点击(pv)':<10} | {'收藏':<10} | {'加购':<10} | {'购买':<10}")
+    print("-" * 60)
+    for row in result4:
+        hour, pv, fav, cart, buy = row
+        print(f"{hour:<5} | {str(pv):<10} | {str(fav):<10} | {str(cart):<10} | {str(buy):<10}")
+
     #df = pd.read_sql_query("SELECT * FROM user_behavior_count LIMIT 10", conn)
     #print(df)
 
