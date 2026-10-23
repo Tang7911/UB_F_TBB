@@ -69,15 +69,15 @@ if os.path.exists(db_path):
             VALUES ('user_behavior_agg', 1)
         """)
         conn.commit()
-        print("用户画像已聚合！")
+        print("用户画像已经聚合！")
 
-        cursor.execute("""
-            SELECT
-                SUM(CASE WHEN buy_type > 1 THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN buy_type > 0 THEN 1 ELSE 0 END))
-            FROM user_behavior_count
-        """)
-        result2 = cursor.fetchone()
-        print(f"“购买次数 ≥ 2 的用户数”占“总购买用户数”的比例为：{result2}")
+    cursor.execute("""
+        SELECT
+            SUM(CASE WHEN buy_type > 1 THEN 1 ELSE 0 END) * 1.0 / SUM(CASE WHEN buy_type > 0 THEN 1 ELSE 0 END)
+        FROM user_behavior_count
+    """)
+    result2 = cursor.fetchone()
+    print(f"“购买次数 ≥ 2 的用户数”占“总购买用户数”的比例为：{result2[0]:.4f}")
 
     #df = pd.read_sql_query("SELECT * FROM user_behavior_count LIMIT 10", conn)
     #print(df)
