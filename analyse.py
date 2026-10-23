@@ -35,10 +35,10 @@ if os.path.exists(db_path):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_behavior_count (
             user_id TEXT comment '用户ID',
-            pv_type TEXT comment '点击数',
-            fav_type TEXT comment '收藏数',
-            cart_type TEXT comment '加购',
-            buy_type TEXT comment '购买'
+            pv_type INTEGER comment '点击数',
+            fav_type INTEGER comment '收藏数',
+            cart_type INTEGRE comment '加购',
+            buy_type INTEGER comment '购买'
         )
     """)
     conn.commit()
@@ -47,9 +47,9 @@ if os.path.exists(db_path):
         SELECT is_done FROM task_status
         WHERE task_name='user_behavior_agg'
     """)
-    result = cursor.fetchone()
+    result1 = cursor.fetchone()
 
-    if result and result[0]==1:
+    if result1 and result1[0]==1:
         print("用户画像已聚合！")
     else:
         cursor.execute("""
@@ -69,8 +69,16 @@ if os.path.exists(db_path):
             VALUES ('user_behavior_agg', 1)
         """)
         conn.commit()
-        print("用户画像已聚合")
-    
+        print("用户画像已聚合！")
+
+        cursor.execute("""
+            SELECT
+                SUM(CASE WHEN buy_type > 1 THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN buy_type > 0 THEN 1 ELSE 0 END))
+            FROM user_behavior_count
+        """)
+        result2 = cursor.fetchone()
+        print(f"“购买次数 ≥ 2 的用户数”占“总购买用户数”的比例为：{result2}")
+
     #df = pd.read_sql_query("SELECT * FROM user_behavior_count LIMIT 10", conn)
     #print(df)
 
