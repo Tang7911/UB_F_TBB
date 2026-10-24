@@ -103,11 +103,85 @@ if os.path.exists(db_path):
         ORDER BY hour
     """)
     result4 = cursor.fetchall()
-    print(f"{'小时':<5} | {'点击(pv)':<10} | {'收藏':<10} | {'加购':<10} | {'购买':<10}")
+    print(f"{'小时':<5} | {'点击':<10} | {'收藏':<10} | {'加购':<10} | {'购买':<10}")
     print("-" * 60)
     for row in result4:
         hour, pv, fav, cart, buy = row
         print(f"{hour:<5} | {str(pv):<10} | {str(fav):<10} | {str(cart):<10} | {str(buy):<10}")
+
+    cursor.execute("""
+        SELECT
+            strftime('%w', datetime) AS week,
+            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_hour,
+            SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_hour,
+            SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_hour,
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_hour
+        FROM user_behavior
+        GROUP BY week
+        ORDER BY week
+    """)
+    result5 = cursor.fetchall()
+    print(f"{'week':<5} | {'点击':<10} | {'收藏':<10} | {'加购':<10} | {'购买':<10}")
+    print("-" * 60)
+    for row in result5:
+        week, pv, fav, cart, buy = row
+        print(f"{week:<5} | {str(pv):<10} | {str(fav):<10} | {str(cart):<10} | {str(buy):<10}")
+
+    cursor.execute("""
+        WITH CTE AS (
+            SELECT
+                user_id,
+                CAST(JULIANDAY('2017-12-04') - JULIANDAY(MAX(datetime)) AS INTEGER) AS R,
+                COUNT(*) AS F
+            FROM user_behavior
+            WHERE behavior_type = 'buy'
+            GROUP BY user_id
+        ),
+        
+        RankData AS (
+            SELECT
+                user_id,
+                R,
+                F,
+                DENSE_RANK() OVER (ORDER BY R ASC) AS R_rank,
+                DENSE_RANK() OVER (ORDER BY F DESC) AS F_rank
+            FROM CTE
+        ),
+
+        ScoreData AS (
+            SELECT
+                user_id,
+                R,
+                R_rank,
+                F,
+                F_rank,
+                CASE NTILE(5) OVER(ORDER BY R_rank) WHEN 1 THEN 5
+                                                    WHEN 2 THEN 4
+                                                    WHEN 3 THEN 3
+                                                    WHEN 4 THEN 2
+                                                    WHEN 5 THEN 1
+                END AS R_score,
+                CASE NTILE(5) OVER(ORDER BY F_rank) WHEN 1 THEN 5
+                                                    WHEN 2 THEN 4
+                                                    WHEN 3 THEN 3
+                                                    WHEN 4 THEN 2
+                                                    WHEN 5 THEN 1
+                END AS F_score
+            FROM RankData
+        )
+        
+        SELECT
+            user_id,
+            R, R_rank, R_score,
+            F, F_rank, F_score,
+            (R_score + F_score) AS score
+        FROM ScoreData
+        ORDER BY score DESC, R_score DESC
+        LIMIT 20
+    """)
+    result6 = cursor.fetchall()
+    for row in result6:
+        print(row)
 
     #df = pd.read_sql_query("SELECT * FROM user_behavior_count LIMIT 10", conn)
     #print(df)
