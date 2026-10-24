@@ -183,6 +183,40 @@ if os.path.exists(db_path):
     for row in result6:
         print(row)
 
+    print("Top 10 爆款商品！")
+    cursor.execute("""
+        SELECT
+            item_id,
+            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_item,
+            SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_item,
+            SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_item,
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_item
+        FROM user_behavior
+        GROUP BY item_id
+        ORDER BY buy_item DESC
+        LIMIT 10
+    """)
+    result7 = cursor.fetchall()
+    for row in result7:
+        print(row)
+
+    print("Top 10 热门类目! ")
+    cursor.execute("""
+        SELECT
+            category_id,
+            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_category,
+            SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_category,
+            SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_category,
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_category
+        FROM user_behavior
+        GROUP BY category_id
+        ORDER BY buy_category DESC
+        LIMIT 10
+    """)
+    result8 = cursor.fetchall()
+    for row in result8:
+        print(row)
+
     #df = pd.read_sql_query("SELECT * FROM user_behavior_count LIMIT 10", conn)
     #print(df)
 
