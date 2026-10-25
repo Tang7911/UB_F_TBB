@@ -82,25 +82,34 @@ UB_F_TBB/
 ## 🚀 快速开始
 
 ### 1. **环境准备**
+
 Python 3.8+ (本项目仅依赖 Python 内置的 sqlite3 和 os 模块，无需安装第三方重型依赖)。
 确保有足够的磁盘空间（建议 > 10GB）用于存放 CSV 和 SQLite 数据库文件。
 
 ### 2. **数据准备**
+
 下载 淘宝用户行为数据集 (或从其他镜像源获取 UserBehavior.csv)。
 在项目根目录下创建 Data 文件夹，并将 UserBehavior.csv 放入其中。
 
 ### 3. **运行项目**
+
 1. 执行数据建表与清洗 (首次运行会自动导入 CSV，后续运行检测到标记会跳过清洗)
 python table.py
 
 2. 执行数据分析并打印结果
 python analyse.py
 
+---
+
 ## 🔮 未来计划 (Roadmap)
+
     - 📊 数据可视化 (Data Visualization)：引入 Matplotlib / Seaborn / Plotly，将转化率漏斗、小时/星期活跃度趋势、RFM 评分分布等分析结果转化为直观的交互式图表。
     - ⚡ Polars 版本重构：使用 Polars 替代 SQLite 进行内存/外存 DataFrame 计算，探索现代 Python 数据分析的最佳实践，大幅提升亿级数据的处理性能。
     - 📈 进阶分析：在引入商品维表的前提下，补充品类转化率、复购率深度分析及用户留存 Cohort 分析。
 
+---
+
 ## 🙏 致谢
+
 本项目复刻并参考了 TurboWay/bigdata_analyse 的 Hive 实现思路与分析维度，特此致谢。
 感谢阿里巴巴天池提供高质量的开源数据集。
