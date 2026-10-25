@@ -12,6 +12,8 @@ if os.path.exists(db_path):
 
     # 创建游标
     cursor = conn.cursor()
+
+    print("----------用户流量及购物概况分析----------")
     # 分析周期总访问量
     cursor.execute("""
         SELECT COUNT(*) AS pv_nums FROM user_behavior
@@ -32,6 +34,8 @@ if os.path.exists(db_path):
     else:
         print("未查询到数据！")
 
+    # 用户画像聚合
+    # 创建中间表
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_behavior_count (
             user_id TEXT comment '用户ID',
@@ -42,7 +46,7 @@ if os.path.exists(db_path):
         )
     """)
     conn.commit()
-
+    # 判断聚合任务是否完成
     cursor.execute("""
         SELECT is_done FROM task_status
         WHERE task_name='user_behavior_agg'
@@ -52,6 +56,7 @@ if os.path.exists(db_path):
     if result1 and result1[0]==1:
         print("用户画像已聚合！")
     else:
+        # 未进行聚合，插入聚合数据
         cursor.execute("""
             INSERT INTO user_behavior_count (user_id, pv_type, fav_type, cart_type, buy_type)
             SELECT
@@ -63,7 +68,7 @@ if os.path.exists(db_path):
             FROM user_behavior
             GROUP BY user_id
         """)
-
+        # 更新聚合任务状态，改为已完成
         cursor.execute("""
             INSERT INTO task_status(task_name, is_done)
             VALUES ('user_behavior_agg', 1)
@@ -71,6 +76,7 @@ if os.path.exists(db_path):
         conn.commit()
         print("用户画像已经聚合！")
 
+    # 复购率计算
     cursor.execute("""
         SELECT
             SUM(CASE WHEN buy_type > 1 THEN 1 ELSE 0 END) * 1.0 / SUM(CASE WHEN buy_type > 0 THEN 1 ELSE 0 END)
@@ -79,6 +85,7 @@ if os.path.exists(db_path):
     result2 = cursor.fetchone()
     print(f"“购买次数 ≥ 2 的用户数”占“总购买用户数”的比例为：{result2[0]:.4f}")
 
+    print("----------用户行为转化漏斗分析----------")
     cursor.execute("""
         SELECT
             (SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) + SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END)) * 1.0 / SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END),
@@ -91,6 +98,8 @@ if os.path.exists(db_path):
     print(f"第二步转化率：购买数 / (收藏数 + 加购数) = {result3[1]:.4f}")
     print(f"总体转化率：购买数 / 点击数 (PV) = {result3[2]:.4f}")
 
+    print("----------用户行为习惯分析（时间维度）----------")
+    print("----------日内活跃时段----------")
     cursor.execute("""
         SELECT
             strftime('%H', datetime) AS hour,
@@ -108,14 +117,15 @@ if os.path.exists(db_path):
     for row in result4:
         hour, pv, fav, cart, buy = row
         print(f"{hour:<5} | {str(pv):<10} | {str(fav):<10} | {str(cart):<10} | {str(buy):<10}")
-
+    
+    print("----------周内活跃分布----------")
     cursor.execute("""
         SELECT
             strftime('%w', datetime) AS week,
-            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_hour,
-            SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_hour,
-            SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_hour,
-            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_hour
+            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_week,
+            SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_week,
+            SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_week,
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_week
         FROM user_behavior
         GROUP BY week
         ORDER BY week
@@ -127,6 +137,14 @@ if os.path.exists(db_path):
         week, pv, fav, cart, buy = row
         print(f"{week:<5} | {str(pv):<10} | {str(fav):<10} | {str(cart):<10} | {str(buy):<10}")
 
+    print("----------高价值用户挖掘 (RF模型)----------")
+    # WITH TABLE AS() 创建临时表，RankData 和 ScoreData 也为临时表
+    # WITH 末尾要跟搜索语句
+    # R (Recency)：计算每个用户最后一次购买时间距离基准日（2017-12-04）的天数，天数越少（R值越小）越活跃。
+    # F (Frequency)：统计每个用户的总购买次数，次数越多越忠诚。
+    # 打分逻辑：使用窗口函数 dense_rank() 对 R 和 F 分别排名，
+    # 再用 ntile(5) 将用户均分为 5 个梯队，分别赋予 5~1 分。
+    # 最后将 R 分和 F 分相加得到用户总价值得分，得分最高的 Top 用户即为高价值核心用户，可用于后续的精准营销。
     cursor.execute("""
         WITH CTE AS (
             SELECT
@@ -183,7 +201,8 @@ if os.path.exists(db_path):
     for row in result6:
         print(row)
 
-    print("Top 10 爆款商品！")
+    print("----------商品维度分析----------")
+    print("----------Top 10 爆款商品！----------")
     cursor.execute("""
         SELECT
             item_id,
@@ -200,7 +219,7 @@ if os.path.exists(db_path):
     for row in result7:
         print(row)
 
-    print("Top 10 热门类目! ")
+    print("----------Top 10 热门类目! ----------")
     cursor.execute("""
         SELECT
             category_id,
