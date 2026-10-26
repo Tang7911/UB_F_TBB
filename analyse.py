@@ -15,22 +15,25 @@ if os.path.exists(db_path):
 
     print("----------用户流量及购物概况分析----------")
     # 分析周期总访问量
+    cursor.execute("DROP TABLE IF EXISTS metric_overview")
     cursor.execute("""
-        SELECT COUNT(*) AS pv_nums FROM user_behavior
-        WHERE behavior_type='pv'
+        CREATE TABLE metric_overview AS
+        SELECT
+            SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_nums,
+            COUNT(DISTINCT user_id) AS uv_nums 
+        FROM user_behavior
     """)
+    conn.commit()
+
     # 接收结果
+    cursor.execute("""
+        SELECT * FROM metric_overview
+    """)
     result1 = cursor.fetchone()
 
-    # 分析独立访客数
-    cursor.execute("""
-        SELECT COUNT(DISTINCT user_id) AS uv_nums FROM user_behavior
-    """)
-    result2 = cursor.fetchone()
-
-    if result1 and result2:
+    if result1:
         print(f"周期总访问量为：{result1[0]}")
-        print(f"独立访客数为：{result2[0]}")
+        print(f"独立访客数为：{result1[1]}")
     else:
         print("未查询到数据！")
 
@@ -86,12 +89,19 @@ if os.path.exists(db_path):
     print(f"“购买次数 ≥ 2 的用户数”占“总购买用户数”的比例为：{result2[0]:.4f}")
 
     print("----------用户行为转化漏斗分析----------")
+    cursor.execute("DROP TABLE IF EXISTS conversion_rate")
     cursor.execute("""
+        CREATE TABLE conversion_rate AS
         SELECT
-            (SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) + SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END)) * 1.0 / SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END),
-            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) * 1.0 / (SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) + SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END)),
-            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) * 1.0/ SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END)
+            (SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) + SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END)) * 1.0 / SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS one_rate,
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) * 1.0 / (SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) + SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END)) AS two_rate,
+            SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) * 1.0/ SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS overall_rate
         FROM user_behavior
+    """)
+    conn.commit()
+
+    cursor.execute("""
+        SELECT * FROM conversion_rate
     """)
     result3 = cursor.fetchone()
     print(f"第一步转化率：(收藏数 + 加购数) / 点击数 (PV) = {result3[0]:.4f}")
@@ -100,7 +110,9 @@ if os.path.exists(db_path):
 
     print("----------用户行为习惯分析（时间维度）----------")
     print("----------日内活跃时段----------")
+    cursor.execute("DROP TABLE IF EXISTS behavior_hourly")
     cursor.execute("""
+        CREATE TABLE behavior_hourly AS
         SELECT
             strftime('%H', datetime) AS hour,
             SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_hour,
@@ -111,6 +123,11 @@ if os.path.exists(db_path):
         GROUP BY hour
         ORDER BY hour
     """)
+    conn.commit()
+
+    cursor.execute("""
+        SELECT * FROM behavior_hourly
+    """)
     result4 = cursor.fetchall()
     print(f"{'小时':<5} | {'点击':<10} | {'收藏':<10} | {'加购':<10} | {'购买':<10}")
     print("-" * 60)
@@ -119,7 +136,9 @@ if os.path.exists(db_path):
         print(f"{hour:<5} | {str(pv):<10} | {str(fav):<10} | {str(cart):<10} | {str(buy):<10}")
     
     print("----------周内活跃分布----------")
+    cursor.execute("DROP TABLE IF EXISTS behavior_weekly")
     cursor.execute("""
+        CREATE TABLE behavior_weekly AS
         SELECT
             strftime('%w', datetime) AS week,
             SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_week,
@@ -129,6 +148,11 @@ if os.path.exists(db_path):
         FROM user_behavior
         GROUP BY week
         ORDER BY week
+    """)
+    conn.commit()
+
+    cursor.execute("""
+        SELECT * FROM behavior_weekly
     """)
     result5 = cursor.fetchall()
     print(f"{'week':<5} | {'点击':<10} | {'收藏':<10} | {'加购':<10} | {'购买':<10}")
@@ -145,7 +169,9 @@ if os.path.exists(db_path):
     # 打分逻辑：使用窗口函数 dense_rank() 对 R 和 F 分别排名，
     # 再用 ntile(5) 将用户均分为 5 个梯队，分别赋予 5~1 分。
     # 最后将 R 分和 F 分相加得到用户总价值得分，得分最高的 Top 用户即为高价值核心用户，可用于后续的精准营销。
+    cursor.execute("DROP TABLE IF EXISTS user_rf_top")
     cursor.execute("""
+        CREATE TABLE user_rf_top AS
         WITH CTE AS (
             SELECT
                 user_id,
@@ -197,13 +223,20 @@ if os.path.exists(db_path):
         ORDER BY score DESC, R_score DESC
         LIMIT 20
     """)
+    conn.commit()
+
+    cursor.execute("""
+        SELECT * FROM user_rf_top
+    """)
     result6 = cursor.fetchall()
     for row in result6:
         print(row)
 
     print("----------商品维度分析----------")
     print("----------Top 10 爆款商品！----------")
+    cursor.execute("DROP TABLE IF EXISTS top_items")
     cursor.execute("""
+        CREATE TABLE top_items AS
         SELECT
             item_id,
             SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_item,
@@ -215,12 +248,19 @@ if os.path.exists(db_path):
         ORDER BY buy_item DESC
         LIMIT 10
     """)
+    conn.commit()
+
+    cursor.execute("""
+        SELECT * FROM top_items
+    """)
     result7 = cursor.fetchall()
     for row in result7:
         print(row)
 
     print("----------Top 10 热门类目! ----------")
+    cursor.execute("DROP TABLE IF EXISTS top_categories")
     cursor.execute("""
+        CREATE TABLE top_categories AS
         SELECT
             category_id,
             SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_category,
@@ -231,6 +271,11 @@ if os.path.exists(db_path):
         GROUP BY category_id
         ORDER BY buy_category DESC
         LIMIT 10
+    """)
+    conn.commit()
+
+    cursor.execute("""
+        SELECT * FROM top_categories
     """)
     result8 = cursor.fetchall()
     for row in result8:
