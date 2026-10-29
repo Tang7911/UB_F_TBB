@@ -39,5 +39,28 @@ plt.legend(fontsize=11)
 
 plt.savefig('./Data/7_week_Activity_Trend.png', dpi=300, bbox_inches='tight')
 
+# RF 用户价值分层散点图
+rf_data = pd.read_sql_query("SELECT user_id, R, F, score FROM user_rf_top", con=conn)
+
+plt.figure(figsize=(10, 7))
+scatter = sns.scatterplot(
+    data = rf_data,
+    x='R', y='F',
+    size='score', sizes=(50, 500),
+    hue='score', palette='Reds',
+    legend='full'
+)
+
+plt.title('High-Value User Segmentation (Top 20) Based on RF Model', fontsize=16, fontweight='bold', pad=15)
+plt.xlabel('R', fontsize=12)
+plt.ylabel('F', fontsize=12)
+
+for i in range(min(3, len(rf_data))):
+    plt.annotate(rf_data.iloc[i]['user_id'],
+                (rf_data.iloc[i]['R'], rf_data.iloc[i]['F']),
+                textcoords="offset points", xytext=(5,5), ha='left', fontsize=9, color='blue'
+    )
+
+plt.savefig('./Data/RFM_User_Value_Segmentation.png', dpi=300, bbox_inches='tight')
 
 conn.close()

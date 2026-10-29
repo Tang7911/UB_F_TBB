@@ -221,7 +221,6 @@ if os.path.exists(db_path):
             (R_score + F_score) AS score
         FROM ScoreData
         ORDER BY score DESC, R_score DESC
-        LIMIT 20
     """)
     conn.commit()
 
@@ -229,8 +228,8 @@ if os.path.exists(db_path):
         SELECT * FROM user_rf_top
     """)
     result6 = cursor.fetchall()
-    for row in result6:
-        print(row)
+    # for row in result6:
+        # print(row)
 
     print("----------商品维度分析----------")
     print("----------Top 10 爆款商品！----------")
