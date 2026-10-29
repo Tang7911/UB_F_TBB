@@ -63,4 +63,22 @@ for i in range(min(3, len(rf_data))):
 
 plt.savefig('./Data/RFM_User_Value_Segmentation.png', dpi=300, bbox_inches='tight')
 
+# Top10爆款商品
+item_data = pd.read_sql_query("SELECT item_id, buy_item FROM top_items", con=conn)
+plt.figure(figsize=(12, 6))
+sns.barplot(data=item_data, x='item_id', y='buy_item')
+plt.title("Top 10 Best-Selling Products Bar Chart", fontsize=16, fontweight='bold', pad=15)
+plt.xlabel("item_id", fontsize=12)
+plt.ylabel("buy_item", fontsize=12)
+plt.savefig('./Data/Best_Selling_Products_Bar_Chart.png', dpi=300, bbox_inches='tight')
+
+# Top10热门类目
+category_data = pd.read_sql_query("SELECT category_id, buy_category FROM top_categories", con=conn)
+plt.figure(figsize=(12, 6))
+sns.barplot(data=category_data, x='category_id', y='buy_category')
+plt.title("Top 10 Popular Category Bar Chart", fontsize=16, fontweight='bold', pad=15)
+plt.xlabel("category_id", fontsize=12)
+plt.ylabel("buy_category", fontsize=12)
+plt.savefig('./Data/Popular_Category_Bar_Chart.png', dpi=300, bbox_inches='tight')
+
 conn.close()
