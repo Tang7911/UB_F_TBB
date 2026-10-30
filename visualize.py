@@ -39,7 +39,7 @@ plt.legend(fontsize=11)
 
 plt.savefig('./Data/7_week_Activity_Trend.png', dpi=300, bbox_inches='tight')
 
-# RF 用户价值分层散点图
+# ----------RF 用户价值分层散点图----------
 rf_data = pd.read_sql_query("SELECT user_id, R, F, score FROM user_rf_top", con=conn)
 
 plt.figure(figsize=(10, 7))
@@ -63,7 +63,7 @@ for i in range(min(3, len(rf_data))):
 
 plt.savefig('./Data/RFM_User_Value_Segmentation.png', dpi=300, bbox_inches='tight')
 
-# Top10爆款商品
+# ----------Top10爆款商品----------
 item_data = pd.read_sql_query("SELECT item_id, buy_item FROM top_items", con=conn)
 plt.figure(figsize=(12, 6))
 sns.barplot(data=item_data, x='item_id', y='buy_item')
@@ -72,7 +72,7 @@ plt.xlabel("item_id", fontsize=12)
 plt.ylabel("buy_item", fontsize=12)
 plt.savefig('./Data/Best_Selling_Products_Bar_Chart.png', dpi=300, bbox_inches='tight')
 
-# Top10热门类目
+# ----------Top10热门类目----------
 category_data = pd.read_sql_query("SELECT category_id, buy_category FROM top_categories", con=conn)
 plt.figure(figsize=(12, 6))
 sns.barplot(data=category_data, x='category_id', y='buy_category')
