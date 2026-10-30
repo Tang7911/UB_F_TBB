@@ -1,7 +1,3 @@
-已获取仓库结构。为准确撰写 README，我需要细读每个源码文件的内容。现在读取各文件的原始内容。
-
-
-我已通过仓库文件树与原始文件内容，逐一细读了该项目的所有文件（`table.py`、`analyse.py`、`visualize.py`、`.gitignore`、`README.md` 以及 `Data/` 目录下的 5 张图表文件），以下为基于实际代码重新撰写的 README，全部为 Markdown 格式：
 
 ---
 
