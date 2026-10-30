@@ -212,14 +212,26 @@ if os.path.exists(db_path):
         cursor.execute("""
             CREATE TABLE behavior_weekly AS
             SELECT
-                strftime('%w', datetime) AS week,
+                CASE CAST(strftime('%w', datetime) AS INTEGER) 
+                    WHEN 0 THEN 'Sunday'
+                    WHEN 1 THEN 'Monday'
+                    WHEN 2 THEN 'Tuesday'
+                    WHEN 3 THEN 'Wednesday'
+                    WHEN 4 THEN 'Thursday'
+                    WHEN 5 THEN 'Friday'
+                    WHEN 6 THEN 'Saturday'
+                END AS week,
                 SUM(CASE WHEN behavior_type = 'pv' THEN 1 ELSE 0 END) AS pv_week,
                 SUM(CASE WHEN behavior_type = 'fav' THEN 1 ELSE 0 END) AS fav_week,
                 SUM(CASE WHEN behavior_type = 'cart' THEN 1 ELSE 0 END) AS cart_week,
                 SUM(CASE WHEN behavior_type = 'buy' THEN 1 ELSE 0 END) AS buy_week
             FROM user_behavior
-            GROUP BY week
-            ORDER BY week
+            GROUP BY CAST(strftime('%w', datetime) AS INTEGER)
+            ORDER BY 
+                CASE CAST(strftime('%w', datetime) AS INTEGER)
+                    WHEN 0 THEN 7
+                    ELSE CAST(strftime('%w', datetime) AS INTEGER)
+                END
         """)
         conn.commit()
 
